@@ -1,4 +1,3 @@
-
 level = 0
 def indent():
     global level
@@ -87,15 +86,6 @@ class Selector(Node):
 
         self.value = BehaviorTree.FAIL
         return self.value
-
-
-
-
-
-
-
-
-
 
 class Sequence(Node):
     def __init__(self, name, *nodes):
@@ -191,3 +181,4 @@ class Condition(Node):
             raise ValueError;
 
         return self.value
+
