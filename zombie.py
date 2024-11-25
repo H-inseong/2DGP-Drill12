@@ -96,7 +96,7 @@ class Zombie:
         self.x += distance * math.cos(self.dir) #이동
         self.y += distance * math.sin(self.dir)
 
-    def run_slightly_from(self, tx, ty):
+    def avoid_slightly_from(self, tx, ty):
         self.dir = math.atan2(ty - self.y, tx - self.x) # 방향설정
 
         distance = RUN_SPEED_PPS * game_framework.frame_time #델타타임 적용 이동거리
@@ -130,9 +130,9 @@ class Zombie:
         else:
             return BehaviorTree.FAIL
 
-    def run_from_boy(self, r=0.5): #0.5 픽셀 거리 이내로 들어오면 참을 반환
+    def avoid_from_boy(self, r=0.5): #0.5 픽셀 거리 이내로 들어오면 참을 반환
         self.state = 'Walk'
-        self.run_slightly_from(play_mode.boy.x , play_mode.boy.y)
+        self.avoid_slightly_from(play_mode.boy.x, play_mode.boy.y)
         if self.distance_less_than(play_mode.boy.x, play_mode.boy.y, self.x, self.y, r):
             return BehaviorTree.SUCCESS
         else:
@@ -156,26 +156,21 @@ class Zombie:
             return BehaviorTree.FAIL
 
     def build_behavior_tree(self):
-
         a1 = Action('Set target location', self.set_target_location, 1000, 1000)
-
         a2 = Action('Move to', self.move_to)
-
-        #Sequence 노드를 BT의 root로 지정
-        root = move_to_target_location = Sequence('Move to target location', a1, a2)
-
         a3 = Action('Set random location', self.set_random_location)
-        root = wander = Sequence('Wander', a3, a2)
+        a4 = Action('접근', self.move_to_boy)
+        a5 = Action('회피', self.avoid_from_boy)
 
         c1 = Condition('소년이 근처에 있는가?', self.is_boy_nearby, 7)
-        a4 = Action('접근', self.move_to_boy)
-        root = chase_boy = Sequence('소년을 추적', c1, a4)
+        c2 = Condition('좀비가 소년보다 공이 많거나 같은가?', self.ball_count_more)
+        c3 = Condition('좀비가 소년보다 공이 적은가?', self.ball_count_less)
 
-        root = avoid = Sequence('소년을 회피', c1, )
+        wander = Sequence('Wander', a3, a2)
+        chase_boy = Sequence('소년을 추적', c1, c2, a4)
+        avoid = Sequence('소년을 회피', c1, c3, a5)
 
-        root = chase_or_avoid_or_wander = Selector('추적 또는 배회', chase_boy, avoid,wander)
-
-
+        root = chase_or_avoid_or_wander = Selector('추적 또는 회피 또는 배회', chase_boy, avoid, wander)
 
         self.bt = BehaviorTree(root)
 
